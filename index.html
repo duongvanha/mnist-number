@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>Canvas tutorial</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tensorflow/0.15.1/tf.min.js"></script>
+    <script src="mnist.js"></script>
+    <script src="LogisticRegression.js"></script>
+    <style type="text/css">
+        canvas {
+            border: 1px solid black;
+        }
+    </style>
+</head>
+<body onload="draw();">
+<canvas id="tutorial" width="280" height="280"></canvas>
+<button onclick="clearCanvas()">test</button>
+
+
+<script type="text/javascript">
+    function draw() {
+        const set = mnist.set(8000, 2000);
+
+        const trainingSet = set.training;
+        const testSet     = set.test;
+
+        const logisticRegression = new LogisticRegression(trainingSet.map(set => set.input), trainingSet.map(set => set.output), {iterations: 10});
+        logisticRegression.train();
+        const canvas     = document.getElementById('tutorial');
+        window.canvas    = canvas;
+        const ctx        = canvas.getContext('2d');
+        window.ctx       = ctx;
+        let lastX, lastY = null;
+        let drawing      = false;
+
+        canvas.onmousemove = function (e) {
+
+            if (drawing) {
+                ctx.beginPath();
+                ctx.moveTo(lastX, lastY);
+                ctx.lineWidth   = 10;
+                ctx.strokeStyle = '#111111';
+                ctx.lineTo(e.offsetX, e.offsetY);
+                ctx.stroke();
+                [lastX, lastY] = [e.offsetX, e.offsetY];
+            }
+        };
+
+        canvas.onmouseup = function () {
+            ctx.drawImage(canvas, 0, 0, 28, 28)
+            drawing = false;
+        };
+
+        canvas.onmousedown = function (e) {
+            drawing        = true;
+            [lastX, lastY] = [e.offsetX, e.offsetY];
+        }
+    }
+
+    function clearCanvas() {
+        ctx.clearRect(0, 0, 280, 280)
+    }
+</script>
+</body>
+</html>
