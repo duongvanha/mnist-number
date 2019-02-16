@@ -4,7 +4,6 @@
     <meta charset="utf-8"/>
     <title>Canvas tutorial</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tensorflow/0.15.1/tf.min.js"></script>
-    <script src="mnist.js"></script>
     <script src="LogisticRegression.js"></script>
     <style type="text/css">
         canvas {
@@ -14,24 +13,30 @@
 </head>
 <body onload="draw();">
 <canvas id="tutorial" width="280" height="280"></canvas>
-<button onclick="clearCanvas()">test</button>
+<canvas id="tutorial1" width="28" height="28"></canvas>
+<button onclick="clearCanvas()">Clear</button>
+<button onclick="predict()">Predict</button>
+<div style="font-size : 150px;">3</div>
 
 
 <script type="text/javascript">
-    function draw() {
-        const set = mnist.set(8000, 2000);
+    async function draw() {
 
-        const trainingSet = set.training;
-        const testSet     = set.test;
+        const logisticRegression = new LogisticRegression();
 
-        const logisticRegression = new LogisticRegression(trainingSet.map(set => set.input), trainingSet.map(set => set.output), {iterations: 10});
-        logisticRegression.train();
-        const canvas     = document.getElementById('tutorial');
-        window.canvas    = canvas;
-        const ctx        = canvas.getContext('2d');
-        window.ctx       = ctx;
-        let lastX, lastY = null;
-        let drawing      = false;
+        logisticRegression.weights = tf.tensor(await fetch('model.json').then(res => res.json()));
+        const canvas               = document.getElementById('tutorial');
+        const ctx                  = canvas.getContext('2d');
+        const canvas1              = document.getElementById('tutorial1');
+        const ctx1                 = canvas1.getContext('2d');
+        let lastX, lastY           = null;
+        let drawing                = false;
+
+        window.logisticRegression = logisticRegression;
+        window.canvas             = canvas;
+        window.canvas1            = canvas1;
+        window.ctx                = ctx;
+        window.ctx1               = ctx1;
 
         canvas.onmousemove = function (e) {
 
@@ -47,7 +52,7 @@
         };
 
         canvas.onmouseup = function () {
-            ctx.drawImage(canvas, 0, 0, 28, 28)
+            ctx1.drawImage(canvas, 0, 0, 28, 28);
             drawing = false;
         };
 
@@ -58,7 +63,14 @@
     }
 
     function clearCanvas() {
-        ctx.clearRect(0, 0, 280, 280)
+        ctx.clearRect(0, 0, 280, 280);
+        ctx1.clearRect(0, 0, 28, 28)
+    }
+
+    async function predict() {
+        const labels = Array.from(tf.fromPixels(ctx1.getImageData(0, 0, 28, 28), 1).dataSync());
+        console.log(labels);
+        console.log(await logisticRegression.predict([labels]).array());
     }
 </script>
 </body>
