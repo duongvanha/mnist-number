@@ -3,8 +3,9 @@
 <head>
     <meta charset="utf-8"/>
     <title>Canvas tutorial</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tensorflow/0.15.1/tf.min.js"></script>
+    <script src="tf.min.js"></script>
     <script src="LogisticRegression.js"></script>
+    <script src="mnist.js"></script>
     <style type="text/css">
         canvas {
             border: 1px solid black;
@@ -16,21 +17,24 @@
 <canvas id="tutorial1" width="28" height="28"></canvas>
 <button onclick="clearCanvas()">Clear</button>
 <button onclick="predict()">Predict</button>
+<button onclick="show()">Show</button>
+<button onclick="train()">Train</button>
+<button onclick="showLabels()">showLabels</button>
 <div style="font-size : 150px;">3</div>
 
 
 <script type="text/javascript">
     async function draw() {
 
-        const logisticRegression = new LogisticRegression();
+        const logisticRegression = new LogisticRegression({iterations: 100, batchSize: 8000});
 
-        logisticRegression.weights = tf.tensor(await fetch('model.json').then(res => res.json()));
-        const canvas               = document.getElementById('tutorial');
-        const ctx                  = canvas.getContext('2d');
-        const canvas1              = document.getElementById('tutorial1');
-        const ctx1                 = canvas1.getContext('2d');
-        let lastX, lastY           = null;
-        let drawing                = false;
+
+        const canvas     = document.getElementById('tutorial');
+        const ctx        = canvas.getContext('2d');
+        const canvas1    = document.getElementById('tutorial1');
+        const ctx1       = canvas1.getContext('2d');
+        let lastX, lastY = null;
+        let drawing      = false;
 
         window.logisticRegression = logisticRegression;
         window.canvas             = canvas;
@@ -38,13 +42,16 @@
         window.ctx                = ctx;
         window.ctx1               = ctx1;
 
+        clearCanvas();
+
         canvas.onmousemove = function (e) {
 
             if (drawing) {
                 ctx.beginPath();
                 ctx.moveTo(lastX, lastY);
-                ctx.lineWidth   = 10;
-                ctx.strokeStyle = '#111111';
+                ctx.lineWidth   = 20;
+                ctx.lineHeigt   = 20;
+                ctx.strokeStyle = '#ffffff';
                 ctx.lineTo(e.offsetX, e.offsetY);
                 ctx.stroke();
                 [lastX, lastY] = [e.offsetX, e.offsetY];
@@ -64,13 +71,75 @@
 
     function clearCanvas() {
         ctx.clearRect(0, 0, 280, 280);
-        ctx1.clearRect(0, 0, 28, 28)
+        ctx1.clearRect(0, 0, 28, 28);
+
+        ctx.beginPath();
+        ctx.rect(0, 0, 280, 280);
+        ctx.fillStyle = '#000000';
+        ctx.fill();
     }
 
+    function draw1(image, canvas) {
+        const [width, height] = [28, 28];
+        canvas.width          = width;
+        canvas.height         = height;
+        const ctx             = canvas.getContext('2d');
+        const imageData       = new ImageData(width, height);
+        const data            = image.dataSync();
+        for (let i = 0; i < height * width; ++i) {
+            const j               = i * 4;
+            imageData.data[j]     = data[i] * 255;
+            imageData.data[j + 1] = data[i] * 255;
+            imageData.data[j + 2] = data[i] * 255;
+            imageData.data[j + 3] = 255;
+        }
+        ctx.putImageData(imageData, 0, 0);
+    }
+
+    async function showLabels() {
+        const {test} = mnist.set(8000, 2000);
+
+        const featuresTest = test.map(i => i.input);
+        setInterval(() => {
+            draw1(tf.tensor([featuresTest[Math.random() * 2000 | 0]]), canvas);
+        }, 300)
+    }
+
+
     async function predict() {
-        const labels = Array.from(tf.fromPixels(ctx1.getImageData(0, 0, 28, 28), 1).dataSync());
-        console.log(labels);
-        console.log(await logisticRegression.predict([labels]).array());
+        const imageData = ctx1.getImageData(0, 0, 28, 28);
+        let data        = [];
+
+
+        for (let i = 0; i < 28 * 28; ++i) {
+            const j = i * 4;
+            data[i] = imageData.data[j] / 255;
+        }
+
+
+        console.log(await logisticRegression.predict([data]).array());
+    }
+
+    async function train() {
+        const {training, test} = mnist.set(8000, 2000);
+
+        const featuresTrain = training.map(i => i.input);
+        const labelsTrain   = training.map(i => i.output);
+
+        const featuresTest = test.map(i => i.input);
+        const labelsTest   = test.map(i => i.output);
+
+        logisticRegression.train(featuresTrain, labelsTrain);
+        console.log('correct % : ', logisticRegression.test(featuresTest, labelsTest))
+    }
+
+    async function show() {
+
+        mnist.set(8000, 2000);
+
+        // draw1(tf.tensor([.training[0].input]), canvas);
+
+        ctx1.drawImage(canvas, 0, 0, 28, 28);
     }
 </script>
 </body>

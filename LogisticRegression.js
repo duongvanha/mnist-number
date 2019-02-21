@@ -85,7 +85,7 @@ class LogisticRegression {
 
 
         // Standard values are available in the library (using normalization), No needs for this
-        features = this._standardize(features);
+        // features = this._standardize(features);
 
         features = tf.ones([features.shape[0], 1]).concat(features, 1);
 
@@ -94,7 +94,6 @@ class LogisticRegression {
 
     predict(values) {
         let a = this._processFeature(values);
-        console.log(a);
         return a.matMul(this.weights).softmax().argMax(1);
     }
 }
